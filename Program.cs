@@ -11,11 +11,6 @@ using IBM.Watson.SpeechToText.v1;
 using IBM.Watson.TextToSpeech.v1;
 using Timer = System.Timers.Timer;
 
-//var watson = new PluggableVoice.Impl.IBMWatson.IBMWatsonSynthBackend("tmKgnY4jYKrl9Ks4UVnZiF0g-WXJ5PExb4gEkhQo02UR", "https://api.eu-de.text-to-speech.watson.cloud.ibm.com/instances/0f39728f-8f8c-4231-8b0f-8fe2fc022a17");
-//SynthVoice voice = watson.GetAvailableVoices().First(voice => voice.Culture.TwoLetterISOLanguageName == "en");
-//Console.WriteLine(voice.Name);
-//return;
-
 var client = new DiscordClient(new DiscordConfiguration() {
 	Token = Environment.GetEnvironmentVariable("BOT_TOKEN"),
 	Intents = DiscordIntents.All
