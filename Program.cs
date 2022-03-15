@@ -41,7 +41,7 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 	tts.SetServiceUrl(Environment.GetEnvironmentVariable("TTS_URL")!);
 
 	while (true) {
-		while (!(await client.GetGuildAsync(guildId)).GetChannel(channelId).Users.Any()) {
+		while (!(await client.GetGuildAsync(guildId)).GetChannel(channelId).Users.Count() >= 2) {
 			await Task.Delay(TimeSpan.FromSeconds(5));
 		}
 
