@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
@@ -40,6 +41,8 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 	var tts = new TextToSpeechService(new IamAuthenticator(Environment.GetEnvironmentVariable("TTS_KEY")));
 	tts.SetServiceUrl(Environment.GetEnvironmentVariable("TTS_URL")!);
 
+	var filter = new Regex("(je bolle mams|[jd][ea] (bo[rl]?man|[pb]olle( )?ma[mn]))"); // it tries
+
 	while (true) {
 		while ((await client.GetGuildAsync(guildId)).GetChannel(channelId).Users.Count() < 2) {
 			await Task.Delay(TimeSpan.FromSeconds(5));
@@ -59,13 +62,7 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 							var response = stt.Recognize(uv.Stream, contentType: "audio/l16;rate=" + vnc.AudioFormat.SampleRate, model: "nl-NL_BroadbandModel");
 							if (response.Result.Results.Count > 0 && response.Result.Results[0].Alternatives.Count > 0) {
 								Console.WriteLine($"{uv.Ssrc} {response.Result.Results[0].Alternatives[0].Transcript}");
-								if (response.Result.Results[0].Alternatives.Any(alt => 
-									    alt.Transcript.Contains("je bolle mams") ||
-									    alt.Transcript.Contains("je pollemans") || // it tries
-									    alt.Transcript.Contains("ja pollemans") ||
-									    alt.Transcript.Contains("je bollemans") ||
-									    alt.Transcript.Contains("ja bollemans")
-									)) {
+								if (response.Result.Results[0].Alternatives.Any(alt => filter.IsMatch(alt.Transcript))) {
 									Console.WriteLine("match");
 									var synthesized = tts.Synthesize("je bolle mams", accept: $"audio/l16;rate={vnc.AudioFormat.SampleRate};channels={vnc.AudioFormat.ChannelCount}", voice: "nl-NL_EmmaVoice");
 									await synthesized.Result.CopyToAsync(vnc.GetTransmitSink());
