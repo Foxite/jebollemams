@@ -28,17 +28,6 @@ client.UseVoiceNext(new VoiceNextConfiguration() {
 });
 await client.ConnectAsync();
 
-/*
-string? channelIdEnvvar = Environment.GetEnvironmentVariable("");
-if (channelIdEnvvar != null) {
-	VoiceNextConnection connection = await client.GetVoiceNext().ConnectAsync(await client.GetChannelAsync(ulong.Parse(channelIdEnvvar)));
-	SpeechRecognitionEngine
-	
-	connection.VoiceReceived += (vnc, args) => {
-		
-	}
-}//*/
-
 string? guildIdEnvvar = Environment.GetEnvironmentVariable("GUILD_ID");
 string? channelIdEnvvar = Environment.GetEnvironmentVariable("CHANNEL_ID");
 if (guildIdEnvvar != null && channelIdEnvvar != null) {
@@ -51,11 +40,8 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 	var tts = new TextToSpeechService(new IamAuthenticator(Environment.GetEnvironmentVariable("TTS_KEY")));
 	tts.SetServiceUrl(Environment.GetEnvironmentVariable("TTS_URL")!);
 
-	//var result = stt.ListLanguageModels("nl");
-
 	while (true) {
 		while (!(await client.GetGuildAsync(guildId)).GetChannel(channelId).Users.Any()) {
-			//Console.WriteLine((await client.GetGuildAsync(guildId)).GetChannel(channelId).Users.Count());
 			await Task.Delay(TimeSpan.FromSeconds(5));
 		}
 
@@ -68,7 +54,6 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 				if (userStreams.TryRemove(uv.Ssrc, out UserVoice? _)) {
 					Console.WriteLine("eee");
 					Task.Run(async () => {
-						//var sink = vnc.GetTransmitSink();
 						uv.Stream.Seek(0, SeekOrigin.Begin);
 						try {
 							var response = stt.Recognize(uv.Stream, contentType: "audio/l16;rate=" + vnc.AudioFormat.SampleRate, model: "nl-NL_BroadbandModel");
@@ -110,12 +95,26 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 				await userStreams.GetOrAdd(args.SSRC, id => new UserVoice(args.SSRC, OnStopSpeaking)).WritePacket(args.PcmData);
 			};
 			
-			//Stream stream = watson.Synthesise(voice, response.Result.Results[0].Alternatives[0].Transcript, out AudioFormat format);
-			//en-GB_KateV3Voice
+			var connectionPoller = new Timer();
+			connectionPoller.Elapsed += (o, e) => {
+				try {
+					vnc.SendSpeakingAsync(false).GetAwaiter().GetResult();
+				} catch (InvalidOperationException) {
+					// Disconnected by a channel admin
+					cts.Cancel();
+				}
+			};
+			connectionPoller.Interval = TimeSpan.FromSeconds(5).TotalMilliseconds;
+			connectionPoller.AutoReset = true;
+			connectionPoller.Start();
 
 			try {
 				await Task.Delay(-1, cts.Token);
 			} catch (TaskCanceledException) { }
+			connectionPoller.Stop();
+			foreach ((uint key, UserVoice? voice) in userStreams) {
+				voice.Stream.Dispose();
+			}
 		}
 		Console.WriteLine("zzz");
 		
