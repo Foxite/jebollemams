@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -52,6 +53,7 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 			CancellationTokenSource cts = new CancellationTokenSource();
 
 			var userStreams = new ConcurrentDictionary<uint, UserVoice>();
+			var listeningToSsrcs = new HashSet<uint>();
 			
 			void OnStopSpeaking(UserVoice uv) {
 				if (userStreams.TryRemove(uv.Ssrc, out UserVoice? _)) {
@@ -87,9 +89,26 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 					});
 				}
 			}
-	
+
+
+			vnc.UserJoined += (_, args) => {
+				if (!args.User.IsBot) {
+					listeningToSsrcs.Add(args.SSRC);
+				}
+
+				return Task.CompletedTask;
+			};
+
+			vnc.UserLeft += (_, args) => {
+				listeningToSsrcs.Remove(args.SSRC);
+				return Task.CompletedTask;
+				;
+			};
+			
 			vnc.VoiceReceived += async (_, args) => {
-				await userStreams.GetOrAdd(args.SSRC, id => new UserVoice(args.SSRC, OnStopSpeaking)).WritePacket(args.PcmData);
+				if (listeningToSsrcs.Contains(args.SSRC)) {
+					await userStreams.GetOrAdd(args.SSRC, ssrc => new UserVoice(ssrc, OnStopSpeaking)).WritePacket(args.PcmData);
+				}
 			};
 			
 			var connectionPoller = new Timer();
