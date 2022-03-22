@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.VoiceNext;
 using IBM.Cloud.SDK.Core.Authentication.Iam;
 using IBM.Watson.SpeechToText.v1;
@@ -54,7 +55,7 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 
 			var userStreams = new ConcurrentDictionary<uint, UserVoice>();
 			var listeningToSsrcs = new HashSet<uint>();
-			
+
 			void OnStopSpeaking(UserVoice uv) {
 				if (userStreams.TryRemove(uv.Ssrc, out UserVoice? _)) {
 					Console.WriteLine("eee");
@@ -80,7 +81,6 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 									cts.Cancel();
 								}
 							}
-
 						} catch (Exception e) {
 							Console.WriteLine(e.ToString());
 						} finally {
@@ -89,7 +89,6 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 					});
 				}
 			}
-
 
 			vnc.UserJoined += (_, args) => {
 				if (!args.User.IsBot) {
@@ -108,7 +107,8 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 			};
 			
 			vnc.VoiceReceived += async (_, args) => {
-				if (listeningToSsrcs.Contains(args.SSRC)) {
+				if (listeningToSsrcs.Contains(args.SSRC) || args.User is { IsBot: false }) {
+					listeningToSsrcs.Add(args.SSRC);
 					await userStreams.GetOrAdd(args.SSRC, ssrc => new UserVoice(ssrc, OnStopSpeaking)).WritePacket(args.PcmData);
 				}
 			};
