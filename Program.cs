@@ -101,8 +101,10 @@ if (guildIdEnvvar != null && channelIdEnvvar != null) {
 
 			vnc.UserLeft += (_, args) => {
 				listeningToSsrcs.Remove(args.SSRC);
+				if (listeningToSsrcs.Count == 0) {
+					cts.Cancel();
+				}
 				return Task.CompletedTask;
-				;
 			};
 			
 			vnc.VoiceReceived += async (_, args) => {
