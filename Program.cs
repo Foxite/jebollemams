@@ -18,12 +18,18 @@ var client = new DiscordClient(new DiscordConfiguration() {
 	Token = Environment.GetEnvironmentVariable("BOT_TOKEN"),
 	Intents = DiscordIntents.All
 });
+
+string[] triggers = Environment.GetEnvironmentVariable("TRIGGERS")!.Split(";");
+
 client.MessageCreated += (_, args) => {
-	if (!args.Author.IsBot && args.Message.Content.ToLower() == "je bolle mams") {
-		return args.Message.RespondAsync("je bolle mams");
-	} else {
-		return Task.CompletedTask;
+	if (!args.Author.IsBot) {
+		foreach (string trigger in triggers) {
+			if (args.Message.Content.ToLower() == trigger) {
+				return args.Message.RespondAsync(trigger);
+			}
+		}
 	}
+	return Task.CompletedTask;
 };
 
 client.UseVoiceNext(new VoiceNextConfiguration() {
