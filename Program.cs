@@ -23,6 +23,10 @@ string[] triggers = Environment.GetEnvironmentVariable("TRIGGERS")!.Split(";");
 
 client.MessageCreated += (_, args) => {
 	if (!args.Author.IsBot) {
+		if (args.Message.Content.Equals(client.CurrentUser.Mention)) {
+			return args.Message.RespondAsync(args.Author.Mention);
+		}
+		
 		foreach (string trigger in triggers) {
 			if (args.Message.Content.ToLower() == trigger) {
 				return args.Message.RespondAsync(trigger);
